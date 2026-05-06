@@ -1,0 +1,108 @@
+name: Manual Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_or_commit:
+        description: 'Commit hash or version tag to rollback to'
+        required: true
+        type: string
+
+env:
+  NODE_VERSION: '18'
+  WORKING_DIRECTORY: './webhook-router-cf'
+
+jobs:
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version_or_commit }}
+
+      - name: Verify commit
+        run: |
+          echo "Rolling back to: ${{ github.event.inputs.version_or_commit }}"
+          echo "Current commit: $(git rev-parse --short HEAD)"
+          echo "Full hash: $(git rev-parse HEAD)"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Type check
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run type-check
+
+      - name: Build
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run build
+
+      - name: Deploy rollback version
+        id: deploy
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "🔄 Rolling back to ${{ github.event.inputs.version_or_commit }}"
+          npx wrangler deploy
+          WORKER_URL="https://webhook-router.${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.workers.dev"
+          echo "worker_url=$WORKER_URL" >> $GITHUB_OUTPUT
+          echo "✅ Rollback complete: $WORKER_URL"
+
+      - name: Verify rollback
+        run: |
+          sleep 3
+          WORKER_URL="https://webhook-router.${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.workers.dev"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WORKER_URL/api/health")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Rollback verified - Worker is healthy"
+          else
+            echo "⚠️ Warning: Worker returned HTTP $HTTP_STATUS"
+          fi
+
+      - name: Notify rollback
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const rollbackStatus = '${{ job.status }}';
+            const commitHash = '${{ github.event.inputs.version_or_commit }}';
+
+            let message = `## 🔄 Rollback Report\n\n`;
+            message += `**Status:** ${rollbackStatus === 'success' ? '✅ Success' : '❌ Failed'}\n`;
+            message += `**Rolled back to:** \`${commitHash}\`\n`;
+            message += `**Worker URL:** [https://webhook-router.${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.workers.dev](https://webhook-router.${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.workers.dev)\n`;
+            message += `**Workflow:** [View Run](${context.payload.repository.html_url}/actions/runs/${context.runId})\n`;
+
+            core.notice(message);
+
+      - name: Slack notification (optional)
+        if: failure() && secrets.SLACK_WEBHOOK_URL
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "⚠️ Webhook Router rollback initiated",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "⚠️ *Rollback triggered by ${{ github.actor }}*\n*Commit:* `${{ github.event.inputs.version_or_commit }}`\n*Status:* ${{ job.status }}\n*Action:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+                  }
+                }
+              ]
+            }

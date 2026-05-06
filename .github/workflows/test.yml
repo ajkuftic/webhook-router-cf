@@ -1,0 +1,133 @@
+name: Test & Lint
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'tsconfig.json'
+      - '.github/workflows/test.yml'
+
+env:
+  NODE_VERSION: '18'
+  WORKING_DIRECTORY: './webhook-router-cf'
+
+jobs:
+  test:
+    name: Type Check & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Lint (ESLint)
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        continue-on-error: true
+        run: npm run lint || echo "Linting found issues"
+
+      - name: Type check
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run type-check
+
+      - name: Build
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run build
+
+      - name: Check build output
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed - no dist directory"
+            exit 1
+          fi
+          echo "✅ Build successful"
+          ls -lh dist/ | head -10
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Check TypeScript strict mode
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if grep -q '"strict": true' tsconfig.json; then
+            echo "✅ TypeScript strict mode enabled"
+          else
+            echo "⚠️ TypeScript strict mode not enabled"
+          fi
+
+      - name: Check file sizes
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          npm run build
+          SIZE=$(du -sh dist/ | cut -f1)
+          echo "📦 Build size: $SIZE"
+          if [ $(echo "$SIZE" | grep -o '[0-9]*' | head -1) -gt 10 ]; then
+            echo "⚠️ Build is larger than expected (>10MB)"
+          fi
+
+  comment-on-pr:
+    name: PR Comment
+    runs-on: ubuntu-latest
+    needs: [test, code-quality]
+    if: github.event_name == 'pull_request' && always()
+    steps:
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testStatus = '${{ needs.test.result }}';
+            const codeStatus = '${{ needs.code-quality.result }}';
+            const allPassed = testStatus === 'success' && codeStatus === 'success';
+
+            let comment = '## ✅ Pre-Deployment Checks\n\n';
+            comment += `- ${testStatus === 'success' ? '✅' : '❌'} **Type Check & Build**: ${testStatus}\n`;
+            comment += `- ${codeStatus === 'success' ? '✅' : '⚠️'} **Code Quality**: ${codeStatus}\n`;
+            comment += '\n';
+
+            if (allPassed) {
+              comment += '🎉 All checks passed! This PR is ready to merge and deploy.\n';
+            } else {
+              comment += '⚠️ Some checks failed. Please review the logs and fix the issues.\n';
+            }
+
+            comment += '\n[View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

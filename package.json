@@ -1,0 +1,38 @@
+{
+  "name": "webhook-router-cf",
+  "version": "1.0.0",
+  "description": "Webhook router for Cloudflare Workers - serverless, globally distributed",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write 'src/**/*.ts'",
+    "lint": "eslint src/"
+  },
+  "keywords": ["webhook", "cloudflare-workers", "notifications", "serverless"],
+  "author": "AJ Kuftic",
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^4.4.0",
+    "axios": "^1.7.9",
+    "bcryptjs": "^3.0.3",
+    "uuid": "^11.0.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.66.1",
+    "prettier": "^3.1.1",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
