@@ -14,7 +14,7 @@ vars = { ENVIRONMENT = "production" }
 [[d1_databases]]
 binding = "DB"
 database_name = "webhook-router"
-database_id = ""  # Generated after: wrangler d1 create webhook-router
+database_id = "ef7c9ac1-226f-4af0-96b9-9bc42a882791"  # Generated after: wrangler d1 create webhook-router
 migrations_dir = "migrations"
 
 # KV Namespace (optional, for future use)
