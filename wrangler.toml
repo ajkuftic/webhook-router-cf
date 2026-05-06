@@ -1,4 +1,4 @@
-name = "webhook-router"
+name = "webhook-router-cf"
 type = "service"
 account_id = ""  # Set via wrangler login
 workers_dev = true
