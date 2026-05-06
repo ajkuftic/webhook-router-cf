@@ -38,7 +38,7 @@ export function platformDescription(platform: Platform): string {
     slack: 'JSON: {"webhook_url": "https://hooks.slack.com/..."}',
     discord: 'JSON: {"webhook_url": "https://discord.com/api/webhooks/..."}',
     telegram: 'JSON: {"bot_token": "...", "chat_id": "..."}',
-    google_chat: 'JSON: {"webhook_url": "https://chat.googleapis.com/v1/spaces/..."}',
+    google_chat: 'JSON: {"service_account_email": "...", "service_account_key": "...", "space_id": "..."}',
     custom_api: 'JSON: {"endpoint": "https://...", "auth_header": "Bearer ..."}'
   };
 

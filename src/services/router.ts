@@ -78,7 +78,13 @@ async function dispatchNotification(account: { platform: string; credentials: Re
       return sendTelegramMessage(credentials.bot_token, credentials.chat_id, message, payload);
 
     case 'google_chat':
-      return sendGoogleChatMessage(credentials.webhook_url, message, payload);
+      return sendGoogleChatMessage(
+        credentials.service_account_email,
+        credentials.service_account_key,
+        credentials.space_id,
+        message,
+        payload
+      );
 
     case 'custom_api':
       return sendCustomAPI(credentials.url, credentials.method || 'POST', JSON.parse(credentials.headers || '{}'), { message, payload });

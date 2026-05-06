@@ -137,7 +137,7 @@ Adapters for:
 - Slack (webhook)
 - Discord (webhook)
 - Telegram (bot API)
-- Google Chat (webhook)
+- Google Chat (service account API)
 - Custom APIs
 
 ### Framework
@@ -251,16 +251,32 @@ npm run type-check
 npm run build
 ```
 
-## Next Steps
+## Platform Setup Guides
 
-The core webhook routing engine is complete. To fully replicate the Node version, you'd add:
+For detailed setup instructions for each notification platform:
 
-1. **Admin UI Routes** — `/`, `/accounts`, `/rules` (EJS templates)
-2. **API Endpoints** — `/api/accounts`, `/api/rules` (CRUD operations)
-3. **Auth Routes** — `/auth/login`, `/auth/set-password`
-4. **Session Management** — Full session flow with password hashing
+- **[Google Chat API Setup](./GOOGLE_CHAT_API_SETUP.md)** — Configure service account authentication for Google Chat (works with personal Google accounts)
 
-These follow the same pattern as the webhook route and can be added incrementally.
+Other platforms (Slack, Discord, Telegram) use standard webhook/API credentials available from their respective platforms.
+
+## What's Included
+
+✅ **Complete webhook routing engine** with JSON-based rule matching  
+✅ **Admin dashboard** for managing accounts and rules  
+✅ **Authentication system** with session-based login and password hashing  
+✅ **Database layer** with D1 migrations and logging  
+✅ **Multiple notification platforms** (Slack, Discord, Telegram, Google Chat, Custom APIs)  
+✅ **GitHub Actions CI/CD** for automatic deployment  
+
+## Future Enhancements
+
+Possible additions:
+- Advanced rule matching (regex, complex JSON queries)
+- Webhook delivery retry logic
+- Admin user management (multiple users)
+- Notification templates and custom formatting
+- Webhook signing for security
+- Rate limiting per account
 
 ## Support
 
