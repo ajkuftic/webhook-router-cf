@@ -35,18 +35,18 @@ jobs:
         run: npm run build
 
       - name: Post results
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
             const conclusion = '${{ job.status }}';
-            
+            const successMsg = conclusion === 'success' ? 'Passed' : 'Failed';
+            const detailMsg = conclusion === 'success' ? 'completed successfully' : 'encountered errors';
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `${status} **Build Check ${conclusion === 'success' ? 'Passed' : 'Failed'}**
-
-TypeScript type checking and build verification${conclusion === 'success' ? ' completed successfully' : ' encountered errors'}.`
+              body: `${status} **Build Check ${successMsg}**\n\nTypeScript type checking and build verification ${detailMsg}.`
             });
