@@ -123,15 +123,31 @@ router.post('/accounts/add', async (c) => {
       return c.html(page.toString());
     }
 
-    // Try to parse credentials as JSON
-    try {
-      JSON.parse(credentials);
-    } catch {
-      const page = await AccountFormPage({
-        isEdit: false,
-        error: 'Credentials must be valid JSON'
-      });
-      return c.html(page.toString());
+    // Handle credentials based on platform type
+    let parsedCredentials: Record<string, string>;
+
+    // Special handling for google_chat_app: accept URL string and convert to JSON
+    if (platform === 'google_chat_app') {
+      if (!credentials.startsWith('https://')) {
+        const page = await AccountFormPage({
+          isEdit: false,
+          error: 'Google Chat App requires a deployment URL starting with https://'
+        });
+        return c.html(page.toString());
+      }
+      parsedCredentials = { deployment_url: credentials };
+    } else {
+      // Other platforms: try to parse credentials as JSON
+      try {
+        const parsed = JSON.parse(credentials);
+        parsedCredentials = parsed as Record<string, string>;
+      } catch {
+        const page = await AccountFormPage({
+          isEdit: false,
+          error: 'Credentials must be valid JSON'
+        });
+        return c.html(page.toString());
+      }
     }
 
     // Create account
@@ -141,7 +157,7 @@ router.post('/accounts/add', async (c) => {
     await db.upsertNotificationAccount(accountId, {
       name,
       platform: platform as any,
-      credentials: JSON.parse(credentials),
+      credentials: parsedCredentials,
       webhook_secret: webhookSecret,
       enabled: 1
     });
@@ -249,28 +265,50 @@ router.post('/accounts/:id/edit', async (c) => {
       return c.html(page.toString());
     }
 
-    // Validate JSON
-    try {
-      JSON.parse(credentials);
-    } catch {
-      const page = await AccountFormPage({
-        isEdit: true,
-        accountId,
-        account: {
-          name: account.name,
-          platform: account.platform,
-          credentials: typeof account.credentials === 'string' ? account.credentials : JSON.stringify(account.credentials)
-        },
-        error: 'Credentials must be valid JSON'
-      });
-      return c.html(page.toString());
+    // Handle credentials based on platform type
+    let parsedCredentials: Record<string, string>;
+
+    // Special handling for google_chat_app: accept URL string and convert to JSON
+    if (platform === 'google_chat_app') {
+      if (!credentials.startsWith('https://')) {
+        const page = await AccountFormPage({
+          isEdit: true,
+          accountId,
+          account: {
+            name: account.name,
+            platform: account.platform,
+            credentials: typeof account.credentials === 'string' ? account.credentials : JSON.stringify(account.credentials)
+          },
+          error: 'Google Chat App requires a deployment URL starting with https://'
+        });
+        return c.html(page.toString());
+      }
+      parsedCredentials = { deployment_url: credentials };
+    } else {
+      // Other platforms: try to parse credentials as JSON
+      try {
+        const parsed = JSON.parse(credentials);
+        parsedCredentials = parsed as Record<string, string>;
+      } catch {
+        const page = await AccountFormPage({
+          isEdit: true,
+          accountId,
+          account: {
+            name: account.name,
+            platform: account.platform,
+            credentials: typeof account.credentials === 'string' ? account.credentials : JSON.stringify(account.credentials)
+          },
+          error: 'Credentials must be valid JSON'
+        });
+        return c.html(page.toString());
+      }
     }
 
     // Update account
     await db.upsertNotificationAccount(accountId, {
       name,
       platform: platform as any,
-      credentials: JSON.parse(credentials),
+      credentials: parsedCredentials,
       webhook_secret: account.webhook_secret,
       enabled: account.enabled
     });

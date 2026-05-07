@@ -1,4 +1,4 @@
-export type Platform = 'slack' | 'discord' | 'telegram' | 'google_chat' | 'custom_api';
+export type Platform = 'slack' | 'discord' | 'telegram' | 'google_chat' | 'google_chat_app' | 'custom_api';
 export type WebhookStatus = 'sent' | 'failed' | 'no_match';
 
 export function platformBadge(platform: Platform): string {
@@ -6,7 +6,8 @@ export function platformBadge(platform: Platform): string {
     slack: 'Slack',
     discord: 'Discord',
     telegram: 'Telegram',
-    google_chat: 'Google Chat',
+    google_chat: 'Google Chat (API)',
+    google_chat_app: 'Google Chat (App)',
     custom_api: 'Custom API'
   };
 
@@ -28,7 +29,8 @@ export function platformOptions(): Array<{ value: Platform; label: string }> {
     { value: 'slack', label: 'Slack' },
     { value: 'discord', label: 'Discord' },
     { value: 'telegram', label: 'Telegram' },
-    { value: 'google_chat', label: 'Google Chat' },
+    { value: 'google_chat', label: 'Google Chat (Service Account API)' },
+    { value: 'google_chat_app', label: 'Google Chat (Apps Script)' },
     { value: 'custom_api', label: 'Custom API' }
   ];
 }
@@ -39,6 +41,7 @@ export function platformDescription(platform: Platform): string {
     discord: 'JSON: {"webhook_url": "https://discord.com/api/webhooks/..."}',
     telegram: 'JSON: {"bot_token": "...", "chat_id": "..."}',
     google_chat: 'JSON: {"service_account_email": "...", "service_account_key": "...", "space_id": "..."}',
+    google_chat_app: 'Paste your Apps Script deployment URL (https://script.google.com/...)',
     custom_api: 'JSON: {"endpoint": "https://...", "auth_header": "Bearer ..."}'
   };
 

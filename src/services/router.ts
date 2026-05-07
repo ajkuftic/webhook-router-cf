@@ -3,6 +3,7 @@ import { sendSlackMessage } from './slack';
 import { sendDiscordMessage } from './discord';
 import { sendTelegramMessage } from './telegram';
 import { sendGoogleChatMessage } from './google-chat';
+import { sendGoogleChatAppMessage } from './google-chat-app';
 import { sendCustomAPI } from './custom-api';
 
 export interface RouteResult {
@@ -85,6 +86,9 @@ async function dispatchNotification(account: { platform: string; credentials: Re
         message,
         payload
       );
+
+    case 'google_chat_app':
+      return sendGoogleChatAppMessage(credentials.deployment_url, message, payload);
 
     case 'custom_api':
       return sendCustomAPI(credentials.url, credentials.method || 'POST', JSON.parse(credentials.headers || '{}'), { message, payload });

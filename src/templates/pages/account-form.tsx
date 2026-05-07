@@ -2,6 +2,14 @@ import { createElement, Fragment } from 'hono/jsx';
 import { Layout } from '../layout';
 import { platformOptions, platformDescription } from '../index';
 
+// Helper to extract credentials for display in the form
+function extractCredentialsForDisplay(platform: string, credentials: Record<string, string>): string {
+  if (platform === 'google_chat_app' && typeof credentials === 'object' && 'deployment_url' in credentials) {
+    return credentials.deployment_url as string;
+  }
+  return JSON.stringify(credentials);
+}
+
 interface AccountFormPageProps {
   isEdit?: boolean;
   accountId?: string;
@@ -61,14 +69,14 @@ export function AccountFormPage(props: AccountFormPageProps) {
           </div>
 
           <div class="form-group">
-            <label for="credentials">Credentials (JSON)</label>
+            <label for="credentials" id="credentials-label">Credentials (JSON)</label>
             <textarea
               id="credentials"
               name="credentials"
               placeholder='{"webhook_url": "https://..."}'
               required
-            >{account?.credentials ? (typeof account.credentials === 'string' ? account.credentials : JSON.stringify(account.credentials)) : ''}</textarea>
-            <small>
+            >{account?.credentials ? (typeof account.credentials === 'string' ? account.credentials : extractCredentialsForDisplay(account.platform as string, account.credentials)) : ''}</textarea>
+            <small id="credentials-help">
               Paste your platform webhook URL or API credentials as JSON
             </small>
           </div>
@@ -87,13 +95,36 @@ export function AccountFormPage(props: AccountFormPageProps) {
             discord: 'JSON: {"webhook_url": "https://discord.com/api/webhooks/..."}',
             telegram: 'JSON: {"bot_token": "...", "chat_id": "..."}',
             google_chat: 'JSON: {"service_account_email": "...", "service_account_key": "...", "space_id": "..."}',
+            google_chat_app: 'Paste your Apps Script deployment URL (https://script.google.com/...)',
             custom_api: 'JSON: {"endpoint": "https://...", "auth_header": "Bearer ..."}'
+          };
+
+          const platformLabels = {
+            slack: 'Credentials (JSON)',
+            discord: 'Credentials (JSON)',
+            telegram: 'Credentials (JSON)',
+            google_chat: 'Credentials (JSON)',
+            google_chat_app: 'Deployment URL',
+            custom_api: 'Credentials (JSON)'
+          };
+
+          const platformHelp = {
+            slack: 'Paste your platform webhook URL or API credentials as JSON',
+            discord: 'Paste your platform webhook URL or API credentials as JSON',
+            telegram: 'Paste your platform webhook URL or API credentials as JSON',
+            google_chat: 'Paste your platform webhook URL or API credentials as JSON',
+            google_chat_app: 'Paste the Apps Script deployment URL from your deployed web app',
+            custom_api: 'Paste your platform webhook URL or API credentials as JSON'
           };
 
           function updateCredentialsHint() {
             const platform = document.getElementById('platform').value;
             const hint = document.getElementById('hint');
+            const label = document.getElementById('credentials-label');
+            const help = document.getElementById('credentials-help');
             hint.textContent = platformHints[platform] || 'Select a platform to see credentials format';
+            if (label) label.textContent = platformLabels[platform] || 'Credentials (JSON)';
+            if (help) help.textContent = platformHelp[platform] || 'Enter your credentials';
           }
         `}
       </script>
